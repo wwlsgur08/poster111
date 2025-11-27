@@ -4,94 +4,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const video2 = document.getElementById('video2');
     const videos = [video1, video2];
     let currentRotation = 0;
-    let activeVideoIndex = 0;
 
-    // Start playing the first video
-    video1.play();
-
+    // Helper to switch videos
     function switchVideo(endedVideo, nextVideo) {
         nextVideo.classList.add('active');
         endedVideo.classList.remove('active');
 
-        // Reset the ended video
         endedVideo.currentTime = 0;
-        endedVideo.pause(); // Ensure it stops
+        endedVideo.pause();
 
-        // Play the next video
         nextVideo.play().catch(e => console.error("Play failed:", e));
     }
 
+    // Event listeners for video ending
     video1.addEventListener('ended', () => {
         switchVideo(video1, video2);
-        activeVideoIndex = 1;
     });
 
     video2.addEventListener('ended', () => {
-        document.addEventListener('DOMContentLoaded', () => {
-            const rotateBtn = document.getElementById('rotateBtn');
-            const video1 = document.getElementById('video1');
-            const video2 = document.getElementById('video2');
-            const videos = [video1, video2];
-            let currentRotation = 0;
-            let activeVideoIndex = 0;
+        switchVideo(video2, video1);
+    });
 
-            // Start playing the first video
-            video1.play();
+    // Rotation logic with scaling
+    rotateBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering the global click listener
+        currentRotation += 90;
+        const isRotated = currentRotation % 180 !== 0;
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
 
-            function switchVideo(endedVideo, nextVideo) {
-                nextVideo.classList.add('active');
-                endedVideo.classList.remove('active');
+        videos.forEach(video => {
+            video.style.objectFit = 'contain';
+            let scale = 1;
 
-                // Reset the ended video
-                endedVideo.currentTime = 0;
-                endedVideo.pause(); // Ensure it stops
+            if (isRotated) {
+                const vw = video.videoWidth || 1920;
+                const vh = video.videoHeight || 1080;
+                const videoRatio = vw / vh;
+                const windowRatio = winW / winH;
 
-                // Play the next video
-                nextVideo.play().catch(e => console.error("Play failed:", e));
+                let rw, rh;
+                if (videoRatio > windowRatio) {
+                    rw = winW;
+                    rh = winW / videoRatio;
+                } else {
+                    rh = winH;
+                    rw = winH * videoRatio;
+                }
+
+                // Calculate scale to cover the screen with the rotated video
+                scale = Math.max(winW / rh, winH / rw);
             }
 
-            video1.addEventListener('ended', () => {
-                switchVideo(video1, video2);
-                activeVideoIndex = 1;
-            });
-
-            video2.addEventListener('ended', () => {
-                switchVideo(video2, video1);
-                activeVideoIndex = 0;
-            });
-
-            rotateBtn.addEventListener('click', () => {
-                currentRotation += 90;
-                const isRotated = currentRotation % 180 !== 0;
-
-                videos.forEach(video => {
-                    let scale = 1;
-
-                    if (isRotated) {
-                        // When rotated 90deg, we want to fill the screen.
-                        // We need to scale the video element so that its rotated dimensions cover the viewport.
-                        // The video element is 100vw x 100vh.
-                        // Rotated, it effectively becomes height x width.
-                        // We calculate the scale factor to ensure it covers the screen.
-                        const width = window.innerWidth;
-                        const height = window.innerHeight;
-
-                        // Scale to cover: we need the smaller dimension of the rotated box (which was the larger dimension)
-                        // to match the larger dimension of the screen?
-                        // Actually, simply: we are mapping H -> W and W -> H.
-                        // We need to scale such that the new width (old H) >= Screen W
-                        // AND new height (old W) >= Screen H.
-                        // Scale = max(ScreenW / OldH, ScreenH / OldW)
-                        // But OldW = ScreenW, OldH = ScreenH.
-                        // So Scale = max(ScreenW / ScreenH, ScreenH / ScreenW).
-                        scale = Math.max(width / height, height / width);
-
-                        video.style.objectFit = 'cover';
-                    } else {
-                        video.style.objectFit = 'contain';
-                    }
-
-                    video.style.transform = `rotate(${currentRotation}deg) scale(${scale})`;
-                });
-            });
+            video.style.transform = `rotate(${currentRotation}deg) scale(${scale})`;
         });
+    });
+
+    // Attempt to play immediately
+    const playPromise = video1.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.log("Autoplay prevented. Waiting for interaction.");
+            // Add a one-time click listener to start playback if autoplay failed
+            const startPlay = () => {
+                video1.play();
+                document.removeEventListener('click', startPlay);
+            };
+            document.addEventListener('click', startPlay);
+        });
+    }
+});
