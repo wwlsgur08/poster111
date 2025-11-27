@@ -52,8 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     rw = winH * videoRatio;
                 }
 
-                // Calculate scale to cover the screen with the rotated video
-                scale = Math.max(winW / rh, winH / rw);
+                // Calculate scale to fit the screen with the rotated video (Contain)
+                scale = Math.min(winW / rh, winH / rw);
             }
 
             video.style.transform = `rotate(${currentRotation}deg) scale(${scale})`;
